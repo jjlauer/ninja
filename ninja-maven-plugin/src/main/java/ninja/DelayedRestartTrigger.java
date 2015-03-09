@@ -21,16 +21,26 @@
  */
 package ninja;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
+
 
 public class DelayedRestartTrigger extends Thread {
 
-    private volatile boolean restart;
-    private RunClassInSeparateJvmMachine runClassInSeparateJvmMachine;
-
+    //private volatile boolean restart;
+    private final RunClassInSeparateJvmMachine runClassInSeparateJvmMachine;
+    private final long settleDownMillis = 50;
+    private final AtomicBoolean fileChanged;
+    private final ReentrantLock restartLock;
+    private final Condition restartRequested;
+    
     public DelayedRestartTrigger(
             RunClassInSeparateJvmMachine runClassInSeparateJvmMachine) {
         
-        restart = false;
+        this.restartLock = new ReentrantLock();
+        this.restartRequested = this.restartLock.newCondition();
+        this.fileChanged = new AtomicBoolean(false);
         this.runClassInSeparateJvmMachine = runClassInSeparateJvmMachine;
 
     }
@@ -41,18 +51,30 @@ public class DelayedRestartTrigger extends Thread {
         while (true) {
             
             try {
-
-                sleep(50);
-                if (restart) {
-                    restart = false;
-                    
-                    System.out.println("Restarting SuperDevMode");
-                    
-                    runClassInSeparateJvmMachine.restartNinjaJetty();
-
+                
+                // BUG: just a more efficient / atomic method of being signalled
+                // wait for this thread to be signalled for a restart
+                this.restartLock.lock();
+                try {
+                    this.restartRequested.await();
+                } finally {
+                    this.restartLock.unlock();
                 }
-
+                
+                // BUG w/ previous -- many file system changes would trigger
+                // a TON of restarts
+                // wait for X millis while file changes are still occurring before
+                // trying to trigger a restart
+                while (this.fileChanged.compareAndSet(true, false)) {
+                    System.out.println("Delaying restart for " + settleDownMillis + " ms to wait for file changes to settle");
+                    Thread.sleep(settleDownMillis);
+                }
+                
+                System.out.println("Restarting SuperDevMode");
+                
+                runClassInSeparateJvmMachine.restartNinjaJetty();
             } catch (InterruptedException e) {
+                System.out.println("Interrupted while delayed restart..." + e.getMessage());
                 e.printStackTrace();
             }
         }
@@ -60,8 +82,17 @@ public class DelayedRestartTrigger extends Thread {
     }
     
     public void triggerRestart() {
-
-        restart = true;
+        // indicates a file changed and restart is requested
+        this.fileChanged.set(true);
+        
+        // try to signal for a restart
+        if (this.restartLock.tryLock()) {
+            try {
+                this.restartRequested.signal();
+            } finally {
+                this.restartLock.unlock();
+            }
+        }
     }
     
 }

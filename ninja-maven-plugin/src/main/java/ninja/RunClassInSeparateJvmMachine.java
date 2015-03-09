@@ -98,11 +98,15 @@ public class RunClassInSeparateJvmMachine {
     public synchronized void restartNinjaJetty() {
 
         try {
+            System.out.println("Destroying process currently active");
             processCurrentlyActive.destroy();
+            System.out.println("waitFor on process currently active");
             processCurrentlyActive.waitFor();
+            System.out.println("Starting new ninja jetty...");
             processCurrentlyActive = startNewNinjaJetty();
         } catch (InterruptedException | IOException e) {
             // TODO Auto-generated catch block
+            System.out.println("Unable to cleanly restartNinjaJetty(): " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -150,8 +154,11 @@ public class RunClassInSeparateJvmMachine {
 
         builder.redirectErrorStream(true);
 
+        System.out.println("Running command-line: " + commandLine);
         
         Process process = builder.start();
+        
+        System.out.println("Started process: " + process.toString());
 
         StreamGobbler outputGobbler = new StreamGobbler(
                 process.getInputStream());
@@ -181,7 +188,12 @@ public class RunClassInSeparateJvmMachine {
                 while ((line = br.readLine()) != null) {
                     System.out.println(line);
                 }
+                System.out.println("Uh, oh did the process die or get killed???");
             } catch (IOException ioe) {
+                // BUG: this isn't really an error if we are triggering a kill
+                // it was confusing to see over and over again...
+                
+                System.out.println("IOException while gobbling stream: " + ioe.getMessage());
                 ioe.printStackTrace();
             }
         }
