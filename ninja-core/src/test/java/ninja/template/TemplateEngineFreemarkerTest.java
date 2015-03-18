@@ -57,6 +57,7 @@ import org.slf4j.Logger;
 import com.google.common.base.Optional;
 
 import freemarker.template.Configuration;
+import static org.junit.Assert.fail;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TemplateEngineFreemarkerTest {
@@ -173,7 +174,7 @@ public class TemplateEngineFreemarkerTest {
         
         try {
             templateEngineFreemarker.invoke(context, Results.ok());
-            Assert.fail("exception expected");
+            fail("exception expected");
         } catch (RenderingException e) {
             // expected
         }
