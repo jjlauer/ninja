@@ -37,6 +37,7 @@ import ninja.Context;
 import ninja.Result;
 import ninja.Results;
 import ninja.Route;
+import ninja.exceptions.RenderingException;
 import ninja.i18n.Lang;
 import ninja.i18n.Messages;
 import ninja.session.FlashScope;
@@ -65,8 +66,6 @@ public class TemplateEngineFreemarkerTest {
 
     @Mock
     Logger logger;
-    
-    TemplateEngineFreemarkerExceptionHandler templateEngineFreemarkerExceptionHandler;
 
     @Mock
     TemplateEngineHelper templateEngineHelper;
@@ -112,7 +111,6 @@ public class TemplateEngineFreemarkerTest {
                         messages,
                         lang,
                         logger,
-                        new TemplateEngineFreemarkerExceptionHandler(logger, ninjaProperties),
                         templateEngineHelper,
                         templateEngineManager,
                         templateEngineFreemarkerReverseRouteMethod,
@@ -166,11 +164,19 @@ public class TemplateEngineFreemarkerTest {
     }
 
     @Test
-    public void testThatWhenNotProdModeDoesNotThrowTemplateException() {
+    public void testThatWhenNotProdModeThrowsRenderingException() {
         when(templateEngineHelper.getTemplateForResult(any(Route.class), any(Result.class), Mockito.anyString())).thenReturn("views/broken.ftl.html");
-        when(ninjaProperties.isProd()).thenReturn(false);
-        templateEngineFreemarker.invoke(context, Results.ok());
-        assertThat(writer.toString(), CoreMatchers.containsString("FREEMARKER ERROR MESSAGE"));
+        // only freemarker templates generated exceptions to browser -- it makes
+        // sense that this continues in diagnostic mode only
+        //when(ninjaProperties.isDev()).thenReturn(true);
+        //when(ninjaProperties.areDiagnosticsEnabled()).thenReturn(true);
+        
+        try {
+            templateEngineFreemarker.invoke(context, Results.ok());
+            Assert.fail("exception expected");
+        } catch (RenderingException e) {
+            // expected
+        }
     }
 
     @Test(expected = RuntimeException.class)

@@ -173,6 +173,14 @@ public interface NinjaProperties {
     boolean isProd();
     
     /**
+     * Whether we are in diagnostics mode. When this value is true plus isDev()
+     * is true then its considered safe to display detailed diagnostic error
+     * messages.  NinjaDefault will use this value along with the mode to
+     * render DiagnosticError templates rather than the default system ones.
+     */
+    boolean areDiagnosticsEnabled();
+    
+    /**
      * Returns context under which the application is currently running.
      * For instance on Java application servers it is common to use something like
      * http://www.myserver.com/myapplication/index.html - where myapplication

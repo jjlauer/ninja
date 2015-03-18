@@ -42,9 +42,13 @@ contributed to Ninja. In some random order:
  * Andrew Berglund (t3hc13h)
  * Jonathan Lannoy
  * Matthias Lemmer (raptaml)
+<<<<<<< HEAD
  * Lukas Eichler (lukaseichler)
  * Sven Kubiak (svenkubiak)
  * Gabriel Hora (gabrielhora)
+=======
+ * Joe Lauer (jjlauer)
+>>>>>>> diagnostic_errors
  
 <div class="alert alert-info">
 Do you feel you are missing from that list? Please let us know - this did not happen
